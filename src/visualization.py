@@ -137,13 +137,17 @@ class DataVisualizer:
         mean_val = col_data.mean()
         std_val = col_data.std()
         
+        # 線の色を軸によって変更
+        line_color = "red" if not secondary_y else "green"
+        sigma_color = "orange" if not secondary_y else "lightgreen"
+        
         # 平均線
         fig.add_hline(
             y=mean_val,
             line_dash="dash",
-            line_color="red",
+            line_color=line_color,
             annotation_text=f"{column} 平均",
-            secondary_y=secondary_y
+            yref="y2" if secondary_y else "y"
         )
         
         # 平均±σ線
@@ -152,9 +156,9 @@ class DataVisualizer:
             fig.add_hline(
                 y=sigma_val,
                 line_dash="dot",
-                line_color="orange",
+                line_color=sigma_color,
                 annotation_text=f"{column} 平均{name}±{sigma_multiplier}σ",
-                secondary_y=secondary_y
+                yref="y2" if secondary_y else "y"
             )
     
     def create_scatter_matrix(self, data: pd.DataFrame, columns: List[str]) -> go.Figure:
@@ -204,7 +208,8 @@ class DataVisualizer:
         fig.update_layout(
             title="散布図マトリックス",
             showlegend=False,
-            height=150 * n_cols
+            height=300 * n_cols,  # 高さを増加
+            width=200 * n_cols   # 幅も調整
         )
         
         return fig

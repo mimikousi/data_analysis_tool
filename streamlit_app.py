@@ -41,6 +41,8 @@ def initialize_session_state():
         st.session_state.current_data = None
     if 'outlier_removal_active' not in st.session_state:
         st.session_state.outlier_removal_active = False
+    if 'selected_trend_variables' not in st.session_state:
+        st.session_state.selected_trend_variables = []
 
 def main():
     """メイン関数"""
@@ -171,9 +173,48 @@ def show_data_overview(data: pd.DataFrame):
     with col1:
         st.write("**欠損値情報**")
         null_info = data.isnull().sum()
-        null_info = null_info[null_info > 0]
-        if len(null_info) > 0:
-            st.write(null_info)
+        null_info_with_missing = null_info[null_info > 0]
+        if len(null_info_with_missing) > 0:
+            st.write(null_info_with_missing)
+            
+            # 欠損値除去ボタン
+            st.write("**欠損値除去**")
+            removal_method = st.radio(
+                "除去方法を選択",
+                ["行を削除", "列を削除", "前の値で補完", "平均値で補完"],
+                horizontal=True,
+                key="missing_removal_method"
+            )
+            
+            if st.button("🗑️ 欠損値を除去"):
+                if removal_method == "行を削除":
+                    cleaned_data = data.dropna()
+                    removed_count = len(data) - len(cleaned_data)
+                    st.session_state.current_data = cleaned_data
+                    st.success(f"✅ {removed_count}行の欠損値を含む行を削除しました")
+                    
+                elif removal_method == "列を削除":
+                    cleaned_data = data.dropna(axis=1)
+                    removed_count = len(data.columns) - len(cleaned_data.columns)
+                    st.session_state.current_data = cleaned_data
+                    st.success(f"✅ {removed_count}列の欠損値を含む列を削除しました")
+                    
+                elif removal_method == "前の値で補完":
+                    cleaned_data = data.ffill()
+                    filled_count = data.isnull().sum().sum()
+                    st.session_state.current_data = cleaned_data
+                    st.success(f"✅ {filled_count}個の欠損値を前の値で補完しました")
+                    
+                elif removal_method == "平均値で補完":
+                    numeric_cols_for_fill = data.select_dtypes(include=[np.number]).columns
+                    cleaned_data = data.copy()
+                    for col in numeric_cols_for_fill:
+                        cleaned_data[col].fillna(cleaned_data[col].mean(), inplace=True)
+                    filled_count = data[numeric_cols_for_fill].isnull().sum().sum()
+                    st.session_state.current_data = cleaned_data
+                    st.success(f"✅ {filled_count}個の数値欠損値を平均値で補完しました")
+                
+                st.rerun()
         else:
             st.success("欠損値はありません")
     
@@ -445,7 +486,8 @@ def show_trend_analysis(data: pd.DataFrame):
     
     with col1:
         st.write("**Y1軸変数**")
-        y1_columns = st.multiselect("Y1軸に表示する変数", numeric_cols, default=numeric_cols[:3])
+        default_y1 = numeric_cols[:1] if numeric_cols else []
+        y1_columns = st.multiselect("Y1軸に表示する変数", numeric_cols, default=default_y1)
         
         if y1_columns:
             y1_range_enabled = st.checkbox("Y1軸範囲を手動設定")
@@ -508,6 +550,9 @@ def show_trend_analysis(data: pd.DataFrame):
     if y1_columns:
         all_columns = y1_columns + y2_columns
         
+        # 選択された変数をセッション状態に保存
+        st.session_state.selected_trend_variables = all_columns
+        
         fig = st.session_state.visualizer.create_trend_line_chart(
             data, all_columns, y1_columns, y2_columns,
             y1_range, y2_range, show_statistics, statistics_period, sigma_multiplier
@@ -560,11 +605,16 @@ def show_correlation_analysis(data: pd.DataFrame):
         st.warning("相関分析には2つ以上の数値型カラムが必要です")
         return
     
-    # カラム選択
+    # カラム選択（トレンド分析で選択された変数をデフォルトに）
+    if st.session_state.selected_trend_variables:
+        default_corr_cols = [col for col in st.session_state.selected_trend_variables if col in numeric_cols]
+    else:
+        default_corr_cols = numeric_cols[:5]
+        
     selected_columns = st.multiselect(
         "分析対象の変数を選択", 
         numeric_cols, 
-        default=numeric_cols[:5]
+        default=default_corr_cols
     )
     
     if len(selected_columns) < 2:
@@ -631,11 +681,16 @@ def show_distribution_analysis(data: pd.DataFrame):
         st.warning("数値型のカラムが見つかりません")
         return
     
-    # カラム選択
+    # カラム選択（トレンド分析で選択された変数をデフォルトに）
+    if st.session_state.selected_trend_variables:
+        default_dist_cols = [col for col in st.session_state.selected_trend_variables if col in numeric_cols]
+    else:
+        default_dist_cols = numeric_cols[:4]
+        
     selected_columns = st.multiselect(
         "分析対象の変数を選択", 
         numeric_cols, 
-        default=numeric_cols[:4]
+        default=default_dist_cols
     )
     
     if not selected_columns:
