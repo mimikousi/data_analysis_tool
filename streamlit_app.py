@@ -737,20 +737,35 @@ def show_report_generation(data: pd.DataFrame):
                         data, numeric_cols[:4]
                     )
                 
-                # PDFレポート生成
+                # PDFレポート生成（条件付き）
                 pdf_bytes = st.session_state.report_generator.generate_analysis_report(
                     data, analysis_results, figures, outlier_history
                 )
                 
-                # ダウンロードボタン
-                st.success("✅ レポートが生成されました")
-                
-                st.download_button(
-                    label="📥 PDFレポートをダウンロード",
-                    data=pdf_bytes,
-                    file_name=f"process_data_analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                    mime="application/pdf"
-                )
+                if pdf_bytes:
+                    # ダウンロードボタン
+                    st.success("✅ レポートが生成されました")
+                    
+                    st.download_button(
+                        label="📥 PDFレポートをダウンロード",
+                        data=pdf_bytes,
+                        file_name=f"process_data_analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                        mime="application/pdf"
+                    )
+                else:
+                    # テキストサマリーを表示
+                    st.info("📄 レポートサマリー")
+                    
+                    summary_text = st.session_state.report_generator.export_data_summary(data)
+                    st.text_area("データサマリー", summary_text, height=300)
+                    
+                    # テキストサマリーのダウンロード
+                    st.download_button(
+                        label="📥 テキストサマリーをダウンロード",
+                        data=summary_text,
+                        file_name=f"data_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                        mime="text/plain"
+                    )
                 
             except Exception as e:
                 st.error(f"レポート生成エラー: {str(e)}")

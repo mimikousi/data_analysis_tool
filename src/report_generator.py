@@ -1,12 +1,5 @@
 import pandas as pd
 import numpy as np
-from reportlab.lib.pagesizes import A4, letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from reportlab.pdfgen import canvas
 from datetime import datetime
 import io
 import base64
@@ -16,10 +9,27 @@ import streamlit as st
 import tempfile
 import os
 
+# reportlabの条件付きインポート
+try:
+    from reportlab.lib.pagesizes import A4, letter
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    from reportlab.pdfgen import canvas
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
+
 class ReportGenerator:
     def __init__(self):
-        self.styles = getSampleStyleSheet()
-        self.custom_styles = self._create_custom_styles()
+        if REPORTLAB_AVAILABLE:
+            self.styles = getSampleStyleSheet()
+            self.custom_styles = self._create_custom_styles()
+        else:
+            self.styles = None
+            self.custom_styles = None
         
     def _create_custom_styles(self):
         """カスタムスタイルを作成"""
@@ -67,6 +77,10 @@ class ReportGenerator:
                                figures: Dict[str, go.Figure] = None,
                                outlier_history: List[Dict] = None) -> bytes:
         """総合解析レポートを生成"""
+        
+        if not REPORTLAB_AVAILABLE:
+            st.error("PDF生成機能はローカル環境でのみ利用可能です。代わりにテキストサマリーをご利用ください。")
+            return b''
         
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
