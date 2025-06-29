@@ -316,17 +316,10 @@ class ReportGenerator:
             
             # グラフを画像として保存
             try:
-                img_bytes = fig.to_image(format="png", width=600, height=400)
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
-                    tmp_file.write(img_bytes)
-                    tmp_file.flush()
-                    
-                    img = Image(tmp_file.name, width=5*inch, height=3.3*inch)
-                    elements.append(img)
-                    elements.append(Spacer(1, 0.2*inch))
-                    
-                # 一時ファイルを削除
-                os.unlink(tmp_file.name)
+                # Streamlit Share環境では画像生成をスキップ
+                elements.append(Paragraph(f"{fig_name}のグラフが表示されます（ローカル実行時のみ）", 
+                                        self.custom_styles['Normal']))
+                elements.append(Spacer(1, 0.2*inch))
                 
             except Exception as e:
                 elements.append(Paragraph(f"グラフの生成に失敗しました: {str(e)}", 

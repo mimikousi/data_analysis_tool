@@ -365,18 +365,18 @@ class DataVisualizer:
         
         try:
             if format.lower() == 'png':
-                img_bytes = fig.to_image(format="png", width=width, height=height)
+                img_bytes = fig.to_image(format="png", width=width, height=height, engine="kaleido")
             elif format.lower() == 'svg':
-                img_bytes = fig.to_image(format="svg", width=width, height=height)
+                img_bytes = fig.to_image(format="svg", width=width, height=height, engine="kaleido")
             elif format.lower() == 'pdf':
-                img_bytes = fig.to_image(format="pdf", width=width, height=height)
+                img_bytes = fig.to_image(format="pdf", width=width, height=height, engine="kaleido")
             else:
                 raise ValueError(f"サポートされていない形式: {format}")
                 
             return img_bytes
             
         except Exception as e:
-            st.error(f"画像エクスポートエラー: {str(e)}")
+            st.warning(f"画像エクスポート機能はローカル環境でのみ利用可能です: {str(e)}")
             return b''
     
     def create_download_link(self, fig: go.Figure, filename: str, format: str = 'png') -> str:
